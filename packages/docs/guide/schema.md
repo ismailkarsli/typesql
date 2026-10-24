@@ -124,7 +124,7 @@ The schema says what Postgres returns; the **type map** says what the driver tur
 cannot hold every value. Pick the map that matches your driver by importing `createSql` from
 its adapter:
 
-| Postgres type | `@typesql/pg` | `@typesql/postgres` | `@typesql/postgres` (`createBigIntSql`) |
+| Postgres type | `@typesql/pg` | `@typesql/postgres` | `@typesql/postgres` (`{ bigint: true }`) |
 |---|---|---|---|
 | `int2`, `int4`, `float4`, `float8` | `number` | `number` | `number` |
 | `int8` (also `count(*)`) | `string` | `string` | `bigint` |

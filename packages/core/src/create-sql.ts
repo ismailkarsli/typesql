@@ -1,13 +1,13 @@
 import type { ArgsOf, ParamsOf, RowOf, Validate } from "./engine/infer.js";
 import type { NamedParams, RewriteNamedStr } from "./engine/named.js";
 import type { AnyErr, SqlError } from "./engine/errors.js";
-import type { CheckCarried, DefaultMarker, HasDefaultable, InlineMarker, JsonMarker, RewriteInlineStr, Skip, ValueEnc, WithDefaults } from "./engine/inline.js";
+import type { CheckCarried, HasDefaultable, InlineMarker, JsonMarker, RewriteInlineStr, Skip, ValueEnc, WithDefaults } from "./engine/inline.js";
 import type { HasSlots, JoinedText, MaxParamStr, QuotedIdent, SlotNames, Splice, SpliceCarried, Take, UnionList, UnknownTuple } from "./engine/splice.js";
 import type { DefaultTypeMap } from "./type-map/index.js";
 import { makeFragment, makeQuery, type CARRIED, type Executor, type Fragment, type Query, type TextType } from "./query.js";
 import type { KeyedRow, RowKeys, SqlOptions } from "./row-keys.js";
 import { joinFragments, maxParam, quoteIdent, rewriteNamedOnce, splice, type Spliceable } from "./runtime/splice.js";
-import { hasInline, param, resolveInline, takeValue, valueOrDefault } from "./runtime/inline.js";
+import { hasInline, param, resolveInline, takeValue } from "./runtime/inline.js";
 import { json } from "./runtime/json.js";
 import { buildSet, buildValues } from "./runtime/write.js";
 import type { InsertInput, NoExtraKeys, RelationName, SetInput, SetRep, TableName, ValuesRep } from "./engine/write.js";
@@ -105,7 +105,7 @@ type Carried<DB, TM, X extends string, K extends readonly unknown[]> =
   K extends readonly null[] ? true : CheckCarried<DB, TM, X, K>;
 
 /**
- * `sql.valueOrDefault(v)` with a value that can be `undefined`: the statement is checked again
+ * `sql.param(v)` with a value that can be `undefined`: the statement is checked again
  * with `DEFAULT` in place of every such marker (one extra analysis, not one per marker: each
  * position allows `DEFAULT` or not on its own). `S` is the slot object, `null` without slots.
  */
@@ -117,7 +117,7 @@ type DefaultsCheck<DB, Q extends string, S> =
       : true
     : true;
 
-type DefaultErr<E> = E extends SqlError<infer Msg extends string, infer At> ? SqlError<`${Msg} (sql.valueOrDefault() sends DEFAULT for undefined)`, At> : E;
+type DefaultErr<E> = E extends SqlError<infer Msg extends string, infer At> ? SqlError<`${Msg} (sql.param() sends DEFAULT for undefined)`, At> : E;
 
 /**
  * Checks return `true` or an SqlError per member of a union text (a fragment whose text is a
@@ -159,10 +159,18 @@ type SplicedOr<Q extends string, S> = SplicedText<Q, S> extends infer X extends 
 
 // ─── fragments ───
 
+/**
+ * A fragment is checked where it is spliced, with `$k` for its values, so a `sql.param()` that
+ * can be `undefined` (sent as `DEFAULT`) could not be checked for `DEFAULT` there: refused.
+ */
 type FragCheck<Text extends string, Slotted extends boolean> =
   IsLiteral<Text> extends false ? SqlError<NotLiteralMessage, 0>
   : HasSlots<Text> extends Slotted
-    ? Prepared<Text> extends infer P ? (P extends AnyErr ? P : true) : never
+    ? Prepared<Text> extends infer P
+      ? P extends AnyErr ? P
+      : HasDefaultable<Text> extends true ? SqlError<"a sql.param() value that can be undefined is sent as DEFAULT, which a fragment cannot check; narrow it, or pass value ?? null", null>
+      : true
+      : never
     : never;
 /**
  * Arguments to `sql.fragment`: positional values for its `$n`, or one `:name` object. Applied as
@@ -185,7 +193,7 @@ type EncNamed<Names extends string[], O> = { [I in keyof Names]: Names[I] extend
 type JoinedCarried<Items extends readonly unknown[], Acc extends readonly unknown[] = []> =
   Items extends readonly [infer H, ...infer R] ? JoinedCarried<R, [...Acc, ...(CarriedOf<H> extends infer C extends readonly unknown[] ? C : [])]> : Acc;
 
-// ─── lists (dynamic count, typed elements) ───
+// ─── joins over arrays (dynamic count, typed elements) ───
 
 /**
  * `[text, carried]` for every element type of a list, split per literal text (a fragment whose
@@ -199,11 +207,12 @@ type PairCarried<Ps extends readonly unknown[], Acc extends readonly unknown[] =
 type PairTexts<Ps extends readonly unknown[]> = { [I in keyof Ps]: { readonly text: Ps[I] extends readonly [infer T extends string, unknown] ? T : string } };
 
 /**
- * The representative statement piece of `sql.list(items, sep)`: every distinct element once,
- * joined with `Sep` and renumbered, plus the values those elements carry. A statement that is
- * valid with each element present once is valid for any count and order of them in a list
- * position (ORDER BY, SET, VALUES rows, AND chains, …), so one analysis covers every runtime
- * combination. Unknown element types or a dynamic element text make the list dynamic.
+ * The representative statement piece of `sql.join(items, sep)` over an array: every distinct
+ * element once, joined with `Sep` and renumbered, plus the values those elements carry. A
+ * statement that is valid with each element present once is valid for any count and order of
+ * them in a list position (ORDER BY, SET, VALUES rows, AND chains, …), so one analysis covers
+ * every runtime combination. Unknown element types or a dynamic element text make the list
+ * dynamic.
  */
 export type ListRep<E, Sep extends string> =
   [E] extends [never] ? { readonly text: string; readonly carried: [] }
@@ -213,6 +222,15 @@ export type ListRep<E, Sep extends string> =
       ? { readonly text: JoinedText<PairTexts<Ps>, Sep>; readonly carried: PairCarried<Ps> }
       : never
     : never;
+
+/**
+ * `sql.join(items, sep)`: a tuple keeps the literal text (and the values in order), an array is
+ * typed by its representative piece (`ListRep`).
+ */
+type JoinOf<Items extends readonly Slottable[], Sep extends string> =
+  number extends Items["length"]
+    ? Fragment<ListRep<Items[number], Sep>["text"], readonly unknown[], ListRep<Items[number], Sep>["carried"]>
+    : Fragment<JoinedText<SlotTexts<Items> extends readonly { readonly text: string }[] ? SlotTexts<Items> : never, Sep>, readonly unknown[], JoinedCarried<Items>>;
 
 type GateCallCheck<DB, TM, Keys, Q extends string> =
   [DB, TM, Q] extends [infer D, infer M, infer Q2 extends string]
@@ -292,17 +310,12 @@ export interface Sql<DB, TM, Keys extends RowKeys = "preserve"> {
   /**
    * Bind a value inline: `` sql(`… WHERE id = ${sql.param(userId)}`) ``. The value becomes a
    * `$n` parameter (never text) and its type is checked against the parameter's context.
+   * `undefined` is sent as `DEFAULT`: `` VALUES (${sql.param(email)}, ${sql.param(mood)}) ``.
+   * When the value can be `undefined`, the statement must also be valid with `DEFAULT` there
+   * (a VALUES item or SET value, and not a NOT NULL column without a default), and
+   * `sql.fragment` refuses it.
    */
   param<const T>(value: T): InlineMarker<T>;
-
-  /**
-   * Like `sql.param(value)`, but `undefined` is sent as `DEFAULT`:
-   * `` VALUES (${sql.param(email)}, ${sql.valueOrDefault(mood)}) ``. The value is checked like a
-   * parameter (without `undefined`); when it can be `undefined`, the statement must also be
-   * valid with `DEFAULT` there (a VALUES item or SET value, and not a NOT NULL column without
-   * a default). Inside `sql.fragment` only the value is checked.
-   */
-  valueOrDefault<const T>(value: T): DefaultMarker<T>;
 
   /**
    * Bind a JSON value inline: `` sql(`UPDATE t SET data = ${sql.json(value)}`) ``. Sent as JSON
@@ -338,16 +351,14 @@ export interface Sql<DB, TM, Keys extends RowKeys = "preserve"> {
   /** Any other name (`string`, a generic): a dynamic fragment, for `sql.as<Row>()`. */
   id(...parts: readonly [string, ...string[]]): Fragment<string, [], []>;
 
-  /** Join fragments with a separator; a tuple input keeps the literal text, an array yields a dynamic fragment. */
-  join<const Items extends readonly Slottable[], const Sep extends string = ", ">(items: Items, separator?: Sep): Fragment<JoinedText<SlotTexts<Items> extends readonly { readonly text: string }[] ? SlotTexts<Items> : never, Sep>, readonly unknown[], JoinedCarried<Items>>;
-
   /**
-   * Join a runtime array of fragments whose texts are known: `sql.list(keys.map((k) => SORT[k]))`.
-   * The count and order are dynamic, but every element type is a literal, so the statement is
-   * still checked: it is validated once with each distinct element present (see `ListRep`).
-   * Throws at runtime on an empty array.
+   * Join fragments with a separator: `sql.join([a, b], " AND ")`, or a runtime array of
+   * fragments whose texts are known, `sql.join(keys.map((k) => SORT[k]))`. A tuple keeps the
+   * literal text. For an array the count and order are dynamic, but every element type is a
+   * literal, so the statement is still checked: it is validated once with each distinct element
+   * present (see `ListRep`). Throws at runtime when there are no items.
    */
-  list<const Items extends readonly Slottable[], const Sep extends string = ", ">(items: Items, separator?: Sep): Fragment<ListRep<Items[number], Sep>["text"], readonly unknown[], ListRep<Items[number], Sep>["carried"]>;
+  join<const Items extends readonly Slottable[], const Sep extends string = ", ">(items: Items, separator?: Sep): JoinOf<Items, Sep>;
 
   /**
    * `SET` list from an object: `sql("UPDATE users SET {set} WHERE id = $1", { set: sql.set("users", input) }, id)`.
@@ -436,7 +447,6 @@ export function createSql<DB, TM = DefaultTypeMap>(executor?: Executor, options?
       return makeQuery(text, values, executor, rowKeys);
     },
     param,
-    valueOrDefault,
     json,
     fragment: (text: string, ...rest: readonly unknown[]) => {
       const r = build(text, rest);
@@ -444,11 +454,7 @@ export function createSql<DB, TM = DefaultTypeMap>(executor?: Executor, options?
     },
     id: (...parts: readonly string[]) => makeFragment(quoteIdent(...parts), []),
     join: (items: readonly Spliceable[], separator: string = ", ") => {
-      const r = joinFragments(items, separator);
-      return makeFragment(r.text, r.values);
-    },
-    list: (items: readonly Spliceable[], separator: string = ", ") => {
-      if (items.length === 0) throw new Error("typesql: sql.list() needs at least one item; put a fixed element first (`[base, ...rest]`) or skip the clause");
+      if (items.length === 0) throw new Error("typesql: sql.join() needs at least one item; put a fixed element first (`[base, ...rest]`) or skip the clause");
       const r = joinFragments(items, separator);
       return makeFragment(r.text, r.values);
     },

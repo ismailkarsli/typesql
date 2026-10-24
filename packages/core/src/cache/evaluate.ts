@@ -33,7 +33,7 @@ export async function loadTypeScript(configFile: string): Promise<TypeScript> {
   };
 }
 
-export const PROBE_HEAD = `import type * as __T from "@typesql/core";\nexport declare const __v: __T.CacheVersion;\nexport declare const __fc: __T.FunctionCatalog;\n`;
+export const PROBE_HEAD = `import type * as __T from "@typesql/core/engine";\nexport declare const __v: __T.CacheVersion;\nexport declare const __fc: __T.FunctionCatalog;\n`;
 
 export interface ProbeProgram {
   readonly program: Program;
@@ -119,8 +119,8 @@ export async function evaluateTypes(session: ProbeSession, base: string, exprs: 
     if (error !== undefined) return { error };
     const t = types.get(name);
     if (!t) return { error: "no declaration" };
-    // Stryker disable next-line ArrayDeclaration,StringLiteral: the printer names core's types through the probe's `__T` import; this only catches a spelled-out import("@typesql/core")
-    return { text: coreNames(await printer.print(t), ["@typesql/core"]) };
+    // Stryker disable next-line ArrayDeclaration,StringLiteral: the printer names core's types through the probe's `__T` import; this only catches a spelled-out import("@typesql/core/engine")
+    return { text: coreNames(await printer.print(t)) };
   }));
 }
 

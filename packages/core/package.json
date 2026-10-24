@@ -17,6 +17,14 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./adapter": {
+      "types": "./dist/adapter.d.ts",
+      "default": "./dist/adapter.js"
+    },
+    "./engine": {
+      "types": "./dist/engine/index.d.ts",
+      "default": "./dist/engine/index.js"
+    },
     "./editor": {
       "types": "./dist/editor/index.d.ts",
       "default": "./dist/editor/index.js"

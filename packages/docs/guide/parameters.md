@@ -48,8 +48,8 @@ the same value in a second statement throws at runtime. Wrap a value you want to
 [fragment](./fragments), which can be spliced any number of times. `sql.param()` inside quotes
 or a comment is an error.
 
-`sql.valueOrDefault(value)` works the same way, but sends `DEFAULT` when the value is
-`undefined`; see [Writing data](./writing-data#optional-values-sql-valueordefault).
+A value that is `undefined` sends `DEFAULT`, and one that can be is only accepted where
+`DEFAULT` is; see [Writing data](./writing-data#optional-values).
 
 ## A value used more than once
 

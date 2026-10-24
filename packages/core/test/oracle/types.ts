@@ -70,7 +70,7 @@ export async function typesOracle(url: string, log: (m: string) => void, options
         const snap = await printer.snapshot(db as never);
         if (snap === null) groupOf.set(db.id, null);
         else {
-          const text = coreNames(snap, ["@typesql/core"]);
+          const text = coreNames(snap);
           const id = hashOf(text).slice(0, 12);
           const g = groups.get(id) ?? { id, snapshot: text };
           groups.set(id, g);

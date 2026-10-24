@@ -1,5 +1,6 @@
 import { expectTypeOf, test } from "vitest";
-import { createSql, type CamelCase, type CamelCaseKeys, type Col, type DefaultTypeMap, type Executor, type Generated, type KeyedRow, type Nullable, type RowType, type Sql } from "../../src/index.js";
+import { createSql, type Col, type DefaultTypeMap, type Executor, type Generated, type Nullable, type RowType, type Sql } from "../../src/index.js";
+import type { CamelCase, CamelCaseKeys, KeyedRow } from "../../src/engine/index.js";
 import { camelCases } from "../runtime/camel-cases.js";
 
 interface DB {

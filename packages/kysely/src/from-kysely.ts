@@ -1,4 +1,5 @@
-import type { ColDesc, PgScalarName, View } from "@typesql/core";
+import type { View } from "@typesql/core";
+import type { ColDesc, PgScalarName } from "@typesql/core/engine";
 
 /**
  * Converting a Kysely `DB` interface (kysely-codegen, prisma-kysely or hand-written) into a

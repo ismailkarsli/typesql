@@ -5,6 +5,8 @@
     "noEmit": true,
     "types": ["node"],
     "paths": {
+      "@typesql/core/adapter": ["../core/src/adapter.ts"],
+      "@typesql/core/engine": ["../core/src/engine/index.ts"],
       "@typesql/core": ["../core/src/index.ts"],
       "@typesql/drizzle": ["./src/index.ts"],
       "@typesql/pg": ["../pg/src/index.ts"]

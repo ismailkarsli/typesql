@@ -1,5 +1,6 @@
 import type { PrismaPromise } from "@prisma/client/runtime/client";
-import { runTransaction, type Executor, type SqlDriver } from "@typesql/core";
+import type { Executor } from "@typesql/core";
+import { runTransaction, type SqlDriver } from "@typesql/core/adapter";
 
 /**
  * Anything with Prisma Client's raw methods: a `PrismaClient`, an extended client or a transaction

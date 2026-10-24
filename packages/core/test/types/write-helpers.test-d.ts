@@ -1,5 +1,6 @@
 import { expectTypeOf, test } from "vitest";
-import { createSql, type Col, type Enum, type Fragment, type Generated, type InsertInput, type Nullable, type ParamsType, type RowType, type TableName, type TextType, type View } from "../../src/index.js";
+import { createSql, type Col, type Enum, type Fragment, type Generated, type InsertInput, type Nullable, type ParamsType, type RowType, type SqlError, type TableName, type TextType, type View } from "../../src/index.js";
+import type { InlineMarker, ValueEnc } from "../../src/engine/index.js";
 
 interface DB {
   users: { id: Generated<"int4">; email: Col<"text">; display_name: Nullable<"text">; mood: Enum<"mood", { hasDefault: true }>; score: Generated<"int4"> };
@@ -10,30 +11,50 @@ interface DB {
 }
 const sql = createSql<DB>();
 
-test("sql.valueOrDefault: a parameter, or DEFAULT for undefined", () => {
+test("sql.param: a parameter, or DEFAULT for undefined", () => {
+  type E<Q extends string> = Parameters<typeof sql<Q>>[0];
+  type F<Q extends string> = Parameters<typeof sql.fragment<Q, []>>[0];
   const score = 0 as number | undefined;
   const name = null as string | null | undefined;
-  const q = sql(`INSERT INTO users (email, score, display_name) VALUES (${sql.param("a")}, ${sql.valueOrDefault(score)}, ${sql.valueOrDefault(name)}) RETURNING id`);
+  const q = sql(`INSERT INTO users (email, score, display_name) VALUES (${sql.param("a")}, ${sql.param(score)}, ${sql.param(name)}) RETURNING id`);
   // typed with a parameter in its place; the value type is checked without `undefined`
   expectTypeOf<TextType<typeof q>>().toEqualTypeOf<"INSERT INTO users (email, score, display_name) VALUES ($1, $2, $3) RETURNING id">();
   expectTypeOf<ParamsType<typeof q>>().toEqualTypeOf<[string, number, string | null]>();
   expectTypeOf<RowType<typeof q>>().toEqualTypeOf<{ id: number }>();
-  sql(`UPDATE users SET score = ${sql.valueOrDefault(score)}, display_name = ${sql.valueOrDefault(name)} WHERE id = $1`, 1);
-  sql(`INSERT INTO users (email, score) VALUES ('a', ${sql.valueOrDefault(score)}) {ret}`, { ret: sql.fragment("RETURNING id") });
+  sql(`UPDATE users SET score = ${sql.param(score)}, display_name = ${sql.param(name)} WHERE id = $1`, 1);
+  sql(`INSERT INTO users (email, score) VALUES ('a', ${sql.param(score)}) {ret}`, { ret: sql.fragment("RETURNING id") });
   // a value that cannot be undefined is just a parameter, usable anywhere
-  sql(`SELECT id FROM users WHERE score = ${sql.valueOrDefault(5)}`);
+  sql(`SELECT id FROM users WHERE score = ${sql.param(5)}`);
+  // `undefined` itself is DEFAULT, with nothing to check but the position
+  const lit = sql(`INSERT INTO users (email, score) VALUES ('a', ${sql.param(undefined)}) RETURNING id`);
+  expectTypeOf<RowType<typeof lit>>().toEqualTypeOf<{ id: number }>();
+  // the marker: `Du` and the value's encoding without `undefined`; `any` and `unknown` are not checked
+  expectTypeOf(sql.param(score)).toEqualTypeOf<"\u0000Dun\u0000">();
+  expectTypeOf(sql.param(undefined)).toEqualTypeOf<"\u0000Du\u0000">();
+  expectTypeOf(sql.param(0 as unknown)).toEqualTypeOf<"\u0000P*\u0000">();
+  expectTypeOf(sql.param(0 as any)).toEqualTypeOf<"\u0000P*\u0000">();
+  expectTypeOf<InlineMarker<string | null>>().toEqualTypeOf<"\u0000Ps0\u0000">();
+  // a value passed as a value stands for what it wraps; a NUL-delimited text that is no marker is unchecked
+  expectTypeOf<ValueEnc<typeof score | ReturnType<typeof sql.param<typeof score>>>>().toEqualTypeOf<"n" | "nu">();
+  expectTypeOf<ValueEnc<"\u0000X\u0000">>().toEqualTypeOf<"*">();
 
   const email = "a" as string | undefined;
-  // @ts-expect-error null value in column "email" … (sql.valueOrDefault() sends DEFAULT for undefined)
-  sql(`INSERT INTO users (email) VALUES (${sql.valueOrDefault(email)})`);
+  // @ts-expect-error null value in column "email" … (sql.param() sends DEFAULT for undefined)
+  sql(`INSERT INTO users (email) VALUES (${sql.param(email)})`);
   // @ts-expect-error the same through a slotted call
-  sql(`INSERT INTO users (email) VALUES (${sql.valueOrDefault(email)}) {ret}`, { ret: sql.fragment("RETURNING id") });
-  // @ts-expect-error DEFAULT is not allowed in this context
-  sql(`SELECT id FROM users WHERE score = ${sql.valueOrDefault(score)}`);
+  sql(`INSERT INTO users (email) VALUES (${sql.param(email)}) {ret}`, { ret: sql.fragment("RETURNING id") });
+  const where = `SELECT id FROM users WHERE score = ${sql.param(score)}` as const;
+  expectTypeOf<E<typeof where>>().toEqualTypeOf<typeof where & SqlError<"DEFAULT is not allowed in this context (sql.param() sends DEFAULT for undefined)", 7>>();
+  const notNull = `INSERT INTO users (email) VALUES (${sql.param(email)})` as const;
+  expectTypeOf<E<typeof notNull>>().toEqualTypeOf<typeof notNull & SqlError<"null value in column \"email\" of relation \"users\" violates not-null constraint (sql.param() sends DEFAULT for undefined)", 4>>();
+  // a fragment is checked where it is spliced, with $n for its values: DEFAULT cannot be checked there
+  const frag = `score = ${sql.param(score)}` as const;
+  expectTypeOf<F<typeof frag>>().toEqualTypeOf<typeof frag & SqlError<"a sql.param() value that can be undefined is sent as DEFAULT, which a fragment cannot check; narrow it, or pass value ?? null", null>>();
+  sql.fragment(`score = ${sql.param(score ?? 0)}`);
   // @ts-expect-error parameter $1: a string value cannot be used as int4 NOT NULL
-  sql(`INSERT INTO users (email, score) VALUES ('a', ${sql.valueOrDefault("x" as string | undefined)})`);
+  sql(`INSERT INTO users (email, score) VALUES ('a', ${sql.param("x" as string | undefined)})`);
   // @ts-expect-error a string | null value cannot be used as int4 NOT NULL
-  sql(`INSERT INTO users (email, score) VALUES ('a', ${sql.valueOrDefault(null as number | null | undefined)})`);
+  sql(`INSERT INTO users (email, score) VALUES ('a', ${sql.param(null as number | null | undefined)})`);
 });
 
 test("TableName and InsertInput", () => {

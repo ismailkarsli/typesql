@@ -1,12 +1,11 @@
-import { createTransactionalSql, type DefaultTypeMap, type TransactionalSql } from "@typesql/core";
+import type { DefaultTypeMap, TransactionalSql } from "@typesql/core";
+import { createTransactionalSql } from "@typesql/core/adapter";
 import { driver, type DrizzleDatabase } from "./client.js";
 import type { FromDrizzle, FromDrizzleOptions } from "./from-drizzle.js";
 
 export type { FromDrizzle, FromDrizzleOptions, DrizzleColumnTypes } from "./from-drizzle.js";
 export { pgType } from "./pg-type.js";
 export { executor, type DrizzleDatabase } from "./client.js";
-export type { Sql, Query, RowType, ParamsType, DefaultTypeMap, TypeMap, Executor, TransactionalSql } from "@typesql/core";
-export { NoResultError } from "@typesql/core";
 
 /** What `createSql<typeof schema>(db)` returns: core's `Sql` over `FromDrizzle<Schema, Opts>`, with `transaction(fn)`. */
 export type DrizzleSql<Schema, TM = DefaultTypeMap, Opts extends FromDrizzleOptions = {}> = TransactionalSql<FromDrizzle<Schema, Opts>, TM>;

@@ -1,10 +1,9 @@
 import { describe, expect, test } from "vitest";
-import type { Col, Generated, Nullable } from "@typesql/core";
+import { NoResultError, type Col, type Generated, type Nullable } from "@typesql/core";
 import {
   createSql,
   executor,
   migrate,
-  NoResultError,
   type PgPoolLike,
   type PgQueryable,
   type PgTransactionClient,

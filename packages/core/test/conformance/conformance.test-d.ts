@@ -1,5 +1,6 @@
 import { expectTypeOf, test } from "vitest";
-import type { CheckEnc, DefaultTypeMap, Enc, ParamsOf, RowOf } from "../../src/index.js";
+import type { DefaultTypeMap, ParamsOf, RowOf } from "../../src/index.js";
+import type { CheckEnc, Enc } from "../../src/engine/index.js";
 import type { ConformanceDB, TypeofName, corpus, jsonCorpus } from "./corpus.js";
 
 /**

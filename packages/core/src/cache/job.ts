@@ -100,7 +100,7 @@ export class Session {
     // ── 1. discover, and print everything that comes from the project's types ──
     let { program, checker, sf } = await this.withProbe(PROBE_HEAD);
     let printer = new Printer(checker, sf, o.isCorePath);
-    const print = async (t: Type): Promise<string> => coreNames(await printer.print(t), ["@typesql/core"]);
+    const print = async (t: Type): Promise<string> => coreNames(await printer.print(t));
     const include = (f: string): boolean => f !== this.probe && !f.endsWith(".d.ts") && !/[\\/]node_modules[\\/]/.test(f) && !o.isCorePath(f);
     const sites = await discover(program, checker, kinds, o.isCorePath, include);
     const decl = declarations(sf, kinds);
@@ -116,7 +116,7 @@ export class Session {
       for (const p of await checker.getPropertiesOfType(t)) members.push(`${lit(p.name)}: ${await print(await checker.getTypeOfSymbol(p))}`);
       return `{ ${members.join("; ")} }`;
     };
-    const snap = async (t: Type | undefined): Promise<string | null> => (t ? printer.snapshot(t).then((s) => (s === null ? null : coreNames(s, ["@typesql/core"]))) : MISSING);
+    const snap = async (t: Type | undefined): Promise<string | null> => (t ? printer.snapshot(t).then((s) => (s === null ? null : coreNames(s))) : MISSING);
     const prop = async (t: Type | undefined, name: string): Promise<Type | undefined> => {
       if (!t) return undefined;
       const s = await checker.getPropertyOfType(t, name);
@@ -516,7 +516,7 @@ async function snapshotTypeMap(checker: Checker, printer: Printer, tm: Type): Pr
     const t = await checker.getTypeOfSymbol(p);
     const v = await printer.snapshot(t);
     if (v === null) return null;
-    parts.push(`${lit(p.name)}: ${coreNames(v, ["@typesql/core"])}`);
+    parts.push(`${lit(p.name)}: ${coreNames(v)}`);
   }
   return `{ ${parts.join("; ")} }`;
 }

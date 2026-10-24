@@ -1,5 +1,6 @@
 import { expectTypeOf, test } from "vitest";
-import { createSql, type ArgsOf, type Col, type DefaultTypeMap, type Fragment, type Generated, type Json, type JsonValue, type NonArrayOrSqlJson, type ParamsArgs, type ParamsOf, type ParamsType, type RowOf, type RowType, type SetRep, type SqlError } from "../../src/index.js";
+import { createSql, type Col, type DefaultTypeMap, type Fragment, type Generated, type Json, type ParamsOf, type ParamsType, type RowOf, type RowType, type SqlError } from "../../src/index.js";
+import type { ArgsOf, JsonValue, NonArrayOrSqlJson, ParamsArgs, SetRep } from "../../src/engine/index.js";
 
 type HistoryItem = { at: string; state: { value: number; label?: string } };
 type Settings = { theme: "dark" | "light"; tags: string[]; limits: Record<string, number> };

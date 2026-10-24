@@ -8,6 +8,7 @@ import type { Col, Json } from "../packages/core/src/index.ts";
 // from the sources: core's exactly, the adapters loosely (their sources import `@typesql/core`,
 // which resolves to core's dist/).
 type Core = typeof import("../packages/core/src/index.ts");
+type CoreAdapter = typeof import("../packages/core/src/adapter.ts");
 interface AdapterSql {
   (text: string): unknown;
   param(value: unknown): string;
@@ -24,6 +25,7 @@ interface Introspect {
 const dist = (path: string): Promise<unknown> => import(new URL(`../packages/${path}`, import.meta.url).href);
 
 const core = (await dist("core/dist/index.js")) as Core;
+const coreAdapter = (await dist("core/dist/adapter.js")) as CoreAdapter;
 const pg = (await dist("pg/dist/index.js")) as Adapter;
 const pgjs = (await dist("postgres/dist/index.js")) as Adapter;
 
@@ -42,22 +44,22 @@ assert.deepEqual(sql("SELECT id FROM users WHERE email = :email {where}", { wher
 assert.deepEqual(sql("SELECT {col} FROM users", { col: sql.id("display_name") }), { text: 'SELECT "display_name" FROM users', values: [] });
 
 const evil = "x'; DROP TABLE users; --";
-assert.deepEqual(sql(`SELECT id FROM users WHERE email = ${sql.param(evil)} AND id > ${core.param(3)}`), {
+assert.deepEqual(sql(`SELECT id FROM users WHERE email = ${sql.param(evil)} AND id > ${sql.param(3)}`), {
   text: "SELECT id FROM users WHERE email = $1 AND id > $2",
   values: [evil, 3],
 });
 
 const doc = sql(`UPDATE docs SET items = ${sql.json([1, 2])}`);
 assert.equal(doc.text, "UPDATE docs SET items = $1");
-assert.ok(doc.values[0] instanceof core.JsonParam);
+assert.ok(doc.values[0] instanceof coreAdapter.JsonParam);
 assert.equal(doc.values[0].toPostgres(), "[1,2]");
 assert.equal(JSON.stringify(doc.values[0]), "[1,2]");
 
 const m = core.migrations().add("CREATE TABLE t (id int)").add("ALTER TABLE t ADD COLUMN x text");
 assert.deepEqual([...m.statements], ["CREATE TABLE t (id int)", "ALTER TABLE t ADD COLUMN x text"]);
 
-for (const name of ["createTransactionalSql", "runTransaction"] as const) {
-  assert.equal(typeof core[name], "function", `core export ${name}`);
+for (const name of ["createTransactionalSql", "runTransaction", "mapRows", "rowKeysOf", "camelCase"] as const) {
+  assert.equal(typeof coreAdapter[name], "function", `@typesql/core/adapter export ${name}`);
 }
 
 for (const adapter of [pg, pgjs]) {
@@ -76,7 +78,7 @@ assert.deepEqual(await pg.createSql(client).transaction((tx) => tx("SELECT 1 AS 
 assert.deepEqual(log, ["BEGIN", "SELECT 1 AS n", "COMMIT"]);
 
 const introspect = (await dist("pg/dist/introspect/index.js")) as Introspect;
-for (const name of ["introspect", "generateSource", "main", "parseNodeTree", "ViewNullability"]) {
+for (const name of ["introspect", "generateSource"]) {
   assert.equal(typeof introspect[name], "function", `@typesql/pg/introspect export ${name}`);
 }
 const generated = introspect.generateSource({
@@ -86,6 +88,9 @@ const generated = introspect.generateSource({
   enums: [],
 });
 assert.match(generated, /id: Generated<"int4">;/);
+
+const prismaGenerator = (await dist("prisma/dist/generator/api.js")) as { readonly [name: string]: unknown };
+assert.deepEqual(Object.keys(prismaGenerator), ["generateSource"], "@typesql/prisma/generator exports");
 
 const { execFileSync } = await import("node:child_process");
 const help = execFileSync(process.execPath, [new URL("../packages/pg/dist/bin.js", import.meta.url).pathname, "--help"], { encoding: "utf8" });

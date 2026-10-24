@@ -1,5 +1,6 @@
 import { expectTypeOf, test } from "vitest";
-import type { Col, DefaultTypeMap, Generated, Lex, Nullable, ParseProgram, RowOf, SqlError, Validate, View } from "../../src/index.js";
+import type { Col, DefaultTypeMap, Generated, Nullable, RowOf, SqlError, Validate, View } from "../../src/index.js";
+import type { Lex, ParseProgram } from "../../src/engine/index.js";
 
 // Joins, FROM-item naming and WHERE-based nullability narrowing, verified against PostgreSQL 18.
 

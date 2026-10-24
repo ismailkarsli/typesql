@@ -1,6 +1,7 @@
 import { expectTypeOf, test } from "vitest";
 import type { Client, Pool, PoolClient } from "pg";
-import type { Col, Generated, Nullable, ParamsType, PgCatalog, RowType, SqlError, TsTypeOf } from "@typesql/core";
+import type { Col, Generated, Nullable, ParamsType, PgCatalog, RowType, SqlError } from "@typesql/core";
+import type { TsTypeOf } from "@typesql/core/engine";
 import {
   createSql,
   type PgInterval,

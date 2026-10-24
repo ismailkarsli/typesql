@@ -51,13 +51,13 @@ the row type is the union of all their rows. Any other generic or `string` name 
 dynamic fragment, for `sql.as`. To check against a narrower set, widen the name yourself:
 `sql.id(name as "users" | "posts")`.
 
-`sql.join` keeps the literal text only for a tuple written in place. Joining an array built at
-runtime gives a fragment whose text is not known at compile time; use `sql.list` for that.
+`sql.join(items, separator = ", ")` joins fragments. For a tuple written in place it keeps the
+literal text; an array built at runtime is checked as below.
 
 ## Lists from runtime arrays
 
-`sql.list(items, separator = ", ")` joins an array whose length and order are only known at
-runtime, such as user-chosen sort keys. Each element's text must be known at compile time
+`sql.join` also joins an array whose length and order are only known at runtime, such as
+user-chosen sort keys. Each element's text must be known at compile time
 (fragments picked from a constant table, `sql.id` over a union of names), so the statement
 stays checked:
 
@@ -81,7 +81,7 @@ checked against the types they get there.
 ## Dynamic SQL
 
 When the shape of a statement is only known at runtime (`sql.raw(text)`, or `sql.join` over an
-array), TypeSQL cannot infer anything, and splicing such a fragment into `sql(…)` is a compile
+array of fragments whose texts are not known), TypeSQL cannot infer anything, and splicing such a fragment into `sql(…)` is a compile
 error. Use `sql.as<Row>(…)`, which accepts the same arguments, skips inference and lets you
 state the row type:
 

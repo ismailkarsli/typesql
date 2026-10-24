@@ -1,5 +1,6 @@
 import { expectTypeOf, test } from "vitest";
-import type { ApplyDdl, Col, Generated, Nullable, RowOf, ParamsOf, Validate, KindOf, SqlError, DefaultTypeMap } from "../../src/index.js";
+import type { ApplyDdl, Col, Generated, Nullable, RowOf, ParamsOf, Validate, SqlError, DefaultTypeMap } from "../../src/index.js";
+import type { KindOf } from "../../src/engine/index.js";
 
 interface DB {
   items: {

@@ -14,14 +14,14 @@ const created = sql(
 check<Equal<RowType<typeof created>, { id: number; created_at: Date }>>();
 check<Equal<ParamsType<typeof created>, [string, string | null, "happy" | "neutral" | "sad"]>>();
 
-// #region value-or-default
+// #region optional-values
 declare const mood: "happy" | "neutral" | "sad" | undefined; // optional input
 const signup = sql(`
   INSERT INTO users (email, mood)
-  VALUES (${sql.param("a@b.c")}, ${sql.valueOrDefault(mood)})
+  VALUES (${sql.param("a@b.c")}, ${sql.param(mood)})
   RETURNING id, mood`);
 signup.text; // "… VALUES ($1, $2) …", or "… VALUES ($1, DEFAULT) …" when mood is undefined
-// #endregion value-or-default
+// #endregion optional-values
 check<Equal<RowType<typeof signup>, { id: number; mood: "happy" | "neutral" | "sad" }>>();
 
 // #region set

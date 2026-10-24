@@ -69,21 +69,20 @@ Measured on TypeScript 7.1.0-beta:
 - Statements can be up to 4096 tokens.
 - Chains of about 100 `||` or `+` operators hit TypeScript's depth limit. `AND`/`OR` chains
   are balanced by the parser and are fine at 200+ terms.
-- `sql.list` checks one statement with every distinct element once, so its cost grows with the
+- `sql.join` over an array checks one statement with every distinct element once, so its cost grows with the
   number of distinct elements, not with the number of combinations (80 distinct sort
   elements: ~0.2M instantiations). In a select list it counts every element as selected.
 - A fragment whose text is a union (`sql.id(name)` with `name: "a" | "b"`) is checked once
   per member, so two such slots in one statement cost `n × m` checks. A generic `sql.id`
   over `RelationName<DB>` checks the statement against every table and view. For lists, use
-  `sql.list`, which costs one check.
-- `sql.set` and `sql.values` are checked like `sql.list`, with every key of the input type once.
+  `sql.join` over an array, which costs one check.
+- `sql.set` and `sql.values` are checked like `sql.join` over an array, with every key of the
+  input type once.
   The schema does not tell identity `GENERATED ALWAYS` columns apart from other columns with a
   default, so writing one is accepted (Postgres rejects it without `OVERRIDING SYSTEM VALUE`).
 - A `sql.json(value)` passed as a positional or named argument is only checked to be JSON, not
   against a `Json<T>` column's `T` (it is when written inline, in `sql.set` / `sql.values` or as
   a `sql.fragment` argument).
-- `sql.valueOrDefault` inside `sql.fragment(…)` has its value type checked, but not whether
-  `DEFAULT` is allowed where the fragment is spliced.
 - In editor hovers, row types list their keys alphabetically (TypeScript 7 orders the keys of
   computed object types). The rows the driver returns keep the `SELECT` order.
 

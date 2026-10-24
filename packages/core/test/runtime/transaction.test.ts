@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { createTransactionalSql, runTransaction, type Col, type DefaultTypeMap, type Executor, type Generated, type SqlDriver } from "../../src/index.js";
+import type { Col, DefaultTypeMap, Executor, Generated } from "../../src/index.js";
+import { createTransactionalSql, runTransaction, type SqlDriver } from "../../src/adapter.js";
 
 interface DB {
   users: { id: Generated<"int4">; email: Col<"text"> };

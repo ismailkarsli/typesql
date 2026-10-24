@@ -95,7 +95,7 @@ const posts = await sqlJs("SELECT id, title FROM posts WHERE author_id = $1", 1)
 
 // with bigint parsing enabled on the connection
 const dbBig = postgres(process.env["DATABASE_URL"]!, { types: { bigint: postgres.BigInt } });
-const big = pgjs.createBigIntSql<DB>(dbBig); // PostgresJsBigIntTypeMap
+const big = pgjs.createSql<DB>(dbBig, { bigint: true }); // PostgresJsBigIntTypeMap
 const counts = await big("SELECT author_id, count(*) AS n FROM posts GROUP BY author_id").execute();
 // { author_id: number; n: bigint }[]
 

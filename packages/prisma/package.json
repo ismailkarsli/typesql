@@ -18,8 +18,8 @@
       "default": "./dist/index.js"
     },
     "./generator": {
-      "types": "./dist/generator/index.d.ts",
-      "default": "./dist/generator/index.js"
+      "types": "./dist/generator/api.d.ts",
+      "default": "./dist/generator/api.js"
     }
   },
   "bin": {

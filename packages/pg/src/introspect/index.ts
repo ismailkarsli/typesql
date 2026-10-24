@@ -8,5 +8,4 @@ export {
   type RelationKind,
 } from "./introspect.js";
 export { generateSource, type GenerateOptions } from "./emit.js";
-export { ViewNullability, parseNodeTree, type NullabilityOptions, type QueryFn } from "./nullability.js";
-export { main, type IntrospectConfig } from "./cli.js";
+export type { IntrospectConfig } from "./cli.js";

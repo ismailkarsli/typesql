@@ -1,5 +1,6 @@
 import { expectTypeOf, test } from "vitest";
-import { createSql, migrations, type Analyze, type ApplyDdl, type Col, type DefaultTypeMap, type Generated, type RowOf, type SchemaOf, type SqlError, type ValidateDdl } from "../../../src/index.js";
+import { createSql, migrations, type ApplyDdl, type Col, type DefaultTypeMap, type Generated, type RowOf, type SchemaOf, type SqlError } from "../../../src/index.js";
+import type { Analyze, ValidateDdl } from "../../../src/engine/index.js";
 import "./cache.js";
 
 // The schema the fixture's snapshot describes (cache.ts `D0`).

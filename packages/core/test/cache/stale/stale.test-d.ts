@@ -1,5 +1,6 @@
 import { expectTypeOf, test } from "vitest";
-import type { Analyze, Col, DefaultTypeMap, Generated, Nullable, RowOf, Sig, SqlError, Validate } from "../../../src/index.js";
+import type { Col, DefaultTypeMap, Generated, Nullable, RowOf, Sig, SqlError, Validate } from "../../../src/index.js";
+import type { Analyze } from "../../../src/engine/index.js";
 import type { CachedAnalysis, CachedDdl } from "../../../src/engine/cache.js";
 import type { CallCached } from "../../../src/create-sql.js";
 import type { DB, Q } from "./schema.js";

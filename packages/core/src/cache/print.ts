@@ -1,7 +1,7 @@
 /**
  * Printing types into the cache file. Everything is printed relative to the probe file, which
  * sits next to the cache file, so the import paths TypeScript writes resolve from there, and
- * `__T.X` names `@typesql/core` (the probe imports it as `__T`, like the rendered cache).
+ * `__T.X` names `@typesql/core/engine` (the probe imports it as `__T`, like the rendered cache).
  *
  * Results (what an entry stores) may name any type the cache file can import: they only refer
  * to it. Snapshots (what an entry is checked against) must not name the project's own types:
@@ -157,6 +157,9 @@ export function names(text: string): string[] {
   return out;
 }
 
+/** The modules a printed type may spell core's types through: the engine entry (`__T`) and the root. */
+export const CORE_SPECIFIERS: readonly string[] = ["@typesql/core/engine", "@typesql/core"];
+
 /** Core types as `__T.X` however TypeScript chose to spell them. */
-export const coreNames = (text: string, coreSpecifiers: readonly string[]): string =>
+export const coreNames = (text: string, coreSpecifiers: readonly string[] = CORE_SPECIFIERS): string =>
   coreSpecifiers.reduce((t, spec) => t.replaceAll(`import(${JSON.stringify(spec)}).`, "__T."), text);

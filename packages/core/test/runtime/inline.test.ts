@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { createSql, param } from "../../src/index.js";
+import { createSql } from "../../src/index.js";
+import { param } from "../../src/runtime/inline.js";
 import { pendingParams } from "../../src/runtime/inline.js";
 
 interface DB {

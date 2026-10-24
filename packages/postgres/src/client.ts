@@ -1,4 +1,5 @@
-import type { Executor, SqlDriver } from "@typesql/core";
+import type { Executor } from "@typesql/core";
+import type { SqlDriver } from "@typesql/core/adapter";
 
 /**
  * The shape of a resolved `sql.unsafe()` result the adapter relies on: an array with `count`

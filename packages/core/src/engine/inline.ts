@@ -10,14 +10,20 @@ import type { StripShape } from "./shape.js";
  * Inline parameters: `` sql(`… WHERE id = ${sql.param(userId)}`) ``.
  *
  * `sql.param(v)` has the literal type `InlineMarker<T>`: NUL, "P", an encoding of the
- * value's TS type, NUL. (NUL never occurs in valid SQL text, so markers cannot collide with
- * anything the user wrote.) At the call site the markers are rewritten to `$k` (numbered after
- * the statement's own `$n` / `:name` parameters), and each encoded value type is checked
- * against the type the statement's context gives that parameter.
+ * value's TS type, NUL (or a `DefaultMarker` when the value can be `undefined`). (NUL never
+ * occurs in valid SQL text, so markers cannot collide with anything the user wrote.) At the
+ * call site the markers are rewritten to `$k` (numbered after the statement's own `$n` /
+ * `:name` parameters), and each encoded value type is checked against the type the
+ * statement's context gives that parameter.
  *
  * At runtime `sql.param(v)` returns an unforgeable token that `sql()` replaces the same way.
+ * An `any` or `unknown` value is not checked, so it gets the plain marker.
  */
-export type InlineMarker<T> = `\u0000P${Enc<T>}\u0000`;
+export type InlineMarker<T> =
+  unknown extends T ? PlainMarker<T>
+  : undefined extends T ? DefaultMarker<T>
+  : PlainMarker<T>;
+type PlainMarker<T> = `\u0000P${Enc<T>}\u0000`;
 /** Marker of `sql.json(value)`: an inline parameter flagged as JSON (`J`) before the value's encoding. */
 export type JsonMarker<T> = `\u0000PJ${Enc<T>}\u0000`;
 /**
@@ -28,12 +34,13 @@ export type JsonMarker<T> = `\u0000PJ${Enc<T>}\u0000`;
 export type JsonValue = `\u0000PJ${string}\u0000`;
 
 /**
- * `sql.valueOrDefault(v)`: like `sql.param(v)`, but `undefined` sends `DEFAULT` instead of a
- * parameter. NUL, "D", "u" when the value can be `undefined` (else "-"), the encoding of the
- * value without `undefined`, NUL. (No ":", which `:name` rewriting would see.) The statement is typed with `$k` in its place, and checked a second
- * time with `DEFAULT` there when the value can be `undefined` (`WithDefaults`).
+ * `sql.param(v)` with a value that can be `undefined`, which sends `DEFAULT` instead of a
+ * parameter. NUL, "Du", the encoding of the value without `undefined`, NUL. (Two letters, so
+ * that a plain marker's closing NUL followed by a "D" in the text is not read as one; no ":",
+ * which `:name` rewriting would see.) The statement is typed with `$k` in its place, and
+ * checked a second time with `DEFAULT` there (`WithDefaults`).
  */
-export type DefaultMarker<T> = `\u0000D${undefined extends T ? "u" : "-"}${Enc<Exclude<T, undefined>>}\u0000`;
+export type DefaultMarker<T> = `\u0000Du${Enc<Exclude<T, undefined>>}\u0000`;
 
 // ───────────────────────────── value type encoding ─────────────────────────────
 
@@ -171,13 +178,13 @@ type InlineCode<S extends string, Acc extends string, Encs extends string[], K e
   S extends `${infer Pre}\u0000${infer Body}\u0000${infer Rest}`
     ? InlineCode<Rest, `${Acc}${Pre}$${K}`, [...Encs, MarkerEnc<Body>], Next[K]>
     : [`${Acc}${S}`, Encs, K];
-/** Encoded value type of a marker body: `P<enc>` (sql.param) or `Du<enc>` / `D-<enc>` (sql.valueOrDefault). */
-type MarkerEnc<B extends string> = B extends `P${infer E}` ? E : B extends `Du${infer E}` | `D-${infer E}` ? E : "*";
+/** Encoded value type of a marker body: `P<enc>`, or `Du<enc>` for a value that can be `undefined`. */
+type MarkerEnc<B extends string> = B extends `P${infer E}` ? E : B extends `Du${infer E}` ? E : "*";
 
 type AnyMarker = `\u0000${string}\u0000`;
 /**
  * Encoding of a value passed as a value (a `sql.set` / `sql.values` value, a fragment argument):
- * `Enc<V>`, except that a marker (`sql.json()`, `sql.param()`, `sql.valueOrDefault()`) stands
+ * `Enc<V>`, except that a marker (`sql.json()`, `sql.param()`) stands
  * for the value it wraps, which the runtime unwraps. A union with markers gives a union of
  * encodings, each checked.
  */
@@ -187,10 +194,10 @@ export type ValueEnc<V> =
   : MarkerEncs<Extract<V, AnyMarker>> | ([Exclude<V, AnyMarker>] extends [never] ? never : Enc<Exclude<V, AnyMarker>>);
 type MarkerEncs<M> = M extends `\u0000${infer B}\u0000` ? MarkerEnc<B> : never;
 
-/** Does the text hold a `sql.valueOrDefault()` whose value can be `undefined`? */
+/** Does the text hold a `sql.param()` whose value can be `undefined`? */
 export type HasDefaultable<S extends string> = S extends `${string}\u0000Du${string}` ? true : false;
 
-/** The text with every `sql.valueOrDefault()` that can be `undefined` replaced by `DEFAULT`. */
+/** The text with every `sql.param()` that can be `undefined` replaced by `DEFAULT`. */
 export type WithDefaults<S extends string, Acc extends string = ""> =
   S extends `${infer Pre}\u0000Du${string}\u0000${infer Rest}` ? WithDefaults<Rest, `${Acc}${Pre}DEFAULT`> : `${Acc}${S}`;
 

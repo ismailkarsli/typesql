@@ -1,5 +1,6 @@
 import { expectTypeOf, test } from "vitest";
-import { createSql, type Col, type Generated, type Nullable, type Query, type Fragment, type Validate, type SqlError, type NamesOf, type ParamsArgs, type DefaultTypeMap } from "../../src/index.js";
+import { createSql, type Col, type Generated, type Nullable, type Query, type Fragment, type Validate, type SqlError, type DefaultTypeMap } from "../../src/index.js";
+import type { NamesOf, ParamsArgs } from "../../src/engine/index.js";
 
 interface DB {
   users: { id: Generated<"int4">; email: Col<"text">; display_name: Nullable<"text">; age: Nullable<"int4"> };

@@ -108,7 +108,7 @@ test("an invalid statement reports its SqlError, not an argument-count error", (
   sql(
     // @ts-expect-error column "nme" does not exist
     "SELECT id FROM users WHERE nme = $1 ORDER BY {order}",
-    { order: sql.list([sql.fragment("id"), sql.fragment("email")]) },
+    { order: sql.join([sql.fragment("id"), sql.fragment("email")]) },
     1,
     2,
   );

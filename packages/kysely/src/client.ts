@@ -1,5 +1,6 @@
 import { CompiledQuery, type QueryResult } from "kysely";
-import { runTransaction, type Executor, type SqlDriver } from "@typesql/core";
+import type { Executor } from "@typesql/core";
+import { runTransaction, type SqlDriver } from "@typesql/core/adapter";
 
 /**
  * What the adapter uses from a `Kysely<DB>` or `Transaction<DB>`. Queries run through

@@ -15,7 +15,7 @@ import type { ApplyPatch } from "./ddl/apply.js";
  * in the current program (see `Fresh`); otherwise the lookup falls through to the full analysis.
  * A missing, old or partial cache file therefore makes checking slower, never different.
  *
- *   declare module "@typesql/core" {
+ *   declare module "@typesql/core/engine" {
  *     interface QueryCacheKeys { "SELECT …": true }
  *     interface CacheSnapshots { "<file id>#0": D0 }
  *     interface QueryCache {
@@ -49,7 +49,7 @@ export interface DdlCacheKeys {}
  * Version of the engine's output. An entry computed by another version is never used. It is a
  * hash of the type-level sources, kept up to date by `node scripts/cache-version.ts`.
  */
-export type CacheVersion = "8df63f0067ad";
+export type CacheVersion = "ff059fd7c737";
 
 /** A relation, function or catalog entry that did not exist when the entry was computed. */
 export interface Missing { readonly "typesql.missing": true }
@@ -205,7 +205,7 @@ export type Second<P> = [P] extends [never] ? never : P extends [unknown, infer 
 /**
  * What an entry stores for `Analysis`: `Analyze` without `stmt` (no projection reads it), with
  * the engine's internal aliases (`Shaped`, `ParamsToMap`, …) written out (`Plain`), so that the
- * printed type only names what `@typesql/core` exports.
+ * printed type only names what `@typesql/core/engine` exports.
  */
 export type CacheAnalysis<DB, Q extends string> =
   Analyze<DB, Q> extends infer R

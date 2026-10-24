@@ -15,8 +15,8 @@ const camel = createSql<DB>(executor, { rowKeys: "camelCase" }); // Sql<DB, Defa
 `options.rowKeys` is `"preserve"` (the default: rows keep Postgres' column names) or
 `"camelCase"`: the rows' top-level keys are camelCased with `CamelCasePlugin`'s mapping, in the
 row types and in the rows `execute*` return. See [camelCase row keys](../guide/queries#camelcase-row-keys).
-`@typesql/pg`, `@typesql/postgres` (both `createSql` and `createBigIntSql`) and `@typesql/kysely`
-take the same option after the client.
+`@typesql/pg`, `@typesql/postgres` and `@typesql/kysely` take the same option after the client
+(`@typesql/postgres` also takes `bigint: true`, see [postgres.js](../adapters/postgres)).
 
 ### `sql.transaction(fn)`
 
@@ -83,8 +83,10 @@ const q = sql(`SELECT id, email FROM users
 // type:   Query<{ id: number; email: string }, [number, string]>
 ```
 
-- The value is always sent as a `$n` parameter, never as text. `param` is also exported
-  standalone (`import { param } from "@typesql/core"`).
+- The value is always sent as a `$n` parameter, never as text. An `undefined` value sends
+  `DEFAULT` instead; when the value can be `undefined`, the statement is checked a second time
+  with `DEFAULT` in its place, so it only fits a `VALUES` item or a `SET` value. See
+  [Optional values](../guide/writing-data#optional-values).
 - Each value's TypeScript type is checked against the type its context gives the parameter:
   `${sql.param("5")}` compared with an `int4` column fails with
   `parameter $1: a string value cannot be used as int4 NOT NULL`; a `string | null` value for a
@@ -97,7 +99,7 @@ const q = sql(`SELECT id, email FROM users
 - `sql.param()` inside a quoted string or a comment is a compile error (and a runtime error).
 - Tokens are single-use: each `sql.param()` call belongs to one statement. Fragments resolve
   their inline parameters when created, so a fragment can be reused.
-- `sql.json(value)` (also exported as `json`) is `sql.param()` for JSON: the value is sent as
+- `sql.json(value)` is `sql.param()` for JSON: the value is sent as
   JSON text by every driver (a `JsonParam`, which implements `toPostgres()` for node-postgres and
   `toJSON()` for postgres.js), `null` / `undefined` as SQL `NULL`. It fails unless the parameter
   is `json` / `jsonb` or has no context, and the value is checked against a `Json<T>` column's
@@ -141,19 +143,15 @@ const q = sql("SELECT u.id FROM users u {where}", { where });
   (an error in any member is reported) and the row type is the union. A generic name
   constrained to `RelationName<DB>` is widened to every top-level table and view; any other
   non-literal name is dynamic.
-- `sql.join([f1, f2], " AND ")` keeps the literal text for tuple inputs; an array input is
-  dynamic.
-- `sql.list(items, separator = ", ")` joins a runtime array of fragments whose texts are
-  literals (or unions of literals). The statement is checked once with each distinct element
-  present once; the fragment's text type is that representative text. Throws on an empty
-  array. See [Lists from runtime arrays](../guide/fragments#lists-from-runtime-arrays).
+- `sql.join(items, separator = ", ")` joins fragments. A tuple (`sql.join([f1, f2], " AND ")`)
+  keeps the literal text. A runtime array of fragments whose texts are literals (or unions of
+  literals) is checked once with each distinct element present once; the fragment's text type
+  is that representative text, and an element whose text is not known makes it dynamic. Throws
+  when there are no items. See [Lists from runtime arrays](../guide/fragments#lists-from-runtime-arrays).
 - `sql.raw(text)` is dynamic.
 
 ### Write helpers
 
-- `` sql.valueOrDefault(value) ``: inline like `sql.param`; `undefined` sends `DEFAULT`. Also
-  exported standalone (`import { valueOrDefault } from "@typesql/core"`). When the value can be
-  `undefined`, the statement is checked a second time with `DEFAULT` in its place.
 - `sql.set(table, values)`: `"a" = $1, "b" = $2` for the defined values. `values` is checked
   against `SetInput<DB, TM, table>`; throws when no value is defined.
 - `sql.values(table, rows)`: `("a", "b") VALUES ($1, $2), ($3, DEFAULT)`. Rows are checked
@@ -162,7 +160,7 @@ const q = sql("SELECT u.id FROM users u {where}", { where });
   value checked against a `Json<T>` column's `T`) or a raw non-array value; a raw array is an
   error, as for `sql.param()`.
 - `table` is a `TableName<DB>`: a top-level table, or `"schema.table"`.
-- `set` and `values` are typed like `sql.list`: the text type assigns or lists every key of
+- `set` and `values` are typed like `sql.join` over an array: the text type assigns or lists every key of
   the input type once (`SetRep`, `ValuesRep`). See [Writing data](../guide/writing-data).
 - A dynamic fragment makes the statement text non-literal; the call is rejected with
   `SqlError<"dynamic SQL fragment …">` — use `sql.as<Row>(text, slots, ...params)`.
@@ -199,7 +197,10 @@ non-enumerable, so a query still deep-equals `{ text, values }`.
 
 Code that runs `q.text` itself, instead of through an executor, calls
 `mapRows(q, rows)` to apply the query's `rowKeys` to the driver's rows. `rowKeysOf(q)` returns the
-option, and `camelCase(key)` is the key mapping.
+option, and `camelCase(key)` is the key mapping. These come from `@typesql/core/adapter`, with
+what driver adapters build on: `createTransactionalSql(client, driver, options?)`, the
+`SqlDriver<C>` it takes, `runTransaction(run, fn, options?)` for drivers without a transaction
+API, and `JsonParam`, the value `sql.json()` binds.
 
 ## Public types
 
@@ -212,31 +213,24 @@ option, and `camelCase(key)` is the key mapping.
 | `Sql<DB, TM, Keys = "preserve">` | the `sql` function; `Keys` is the `rowKeys` option |
 | `TransactionalSql<DB, TM, Keys = "preserve">` | an adapter's `sql`: `Sql` plus `transaction(fn)` |
 | `SqlOptions`, `RowKeys` | `createSql`'s options; `"preserve" \| "camelCase"` |
-| `CamelCase<S>`, `CamelCaseKeys<Row>`, `KeyedRow<Row, Keys>` | the key mapping on a string, on a row's top-level keys, and under a `rowKeys` option |
 | `Fragment<Text, Params>` | spliceable SQL piece |
-| `ListRep<Element, Sep>` | the representative text and carried values `sql.list` is checked with |
 | `RowType<Q>`, `ParamsType<Q>`, `TextType<Q>` | extract from a `Query`/`Fragment` type |
-| `InlineMarker<T>` | type of `sql.param(value)`: the inline marker encoding `T` |
-| `DefaultMarker<T>` | type of `sql.valueOrDefault(value)` |
 | `TableName<DB>` | writable tables: top-level names and `"schema.table"` |
 | `RelationName<DB>` | top-level tables and views (what a generic `sql.id(name)` is widened to) |
 | `TableOf<DB, T>` | the column descriptors of a `TableName` |
 | `SetInput<DB, TM, T>`, `InsertInput<DB, TM, T>` | what `sql.set` / a `sql.values` row accepts |
-| `SetRep<P>`, `ValuesRep<R>` | the representative text and carried values of `sql.set` / `sql.values` |
-| `JsonMarker<T>` | type of `sql.json(value)` |
-| `JsonValue` | any `sql.json()` value (what a json / jsonb argument, `set` or `values` value accepts besides raw values) |
-| `JsonParam<T>` | runtime value `sql.json()` binds: `{ value }` with `toPostgres()`, `toJSON()`, `toString()` |
 | `RowOf<DB, TM, Q>` | row type of a statement literal |
 | `ParamsOf<DB, TM, Q>` | positional parameter tuple |
-| `ArgsOf<DB, TM, Q>` | the tuple a call site passes: `ParamsOf`, with json / jsonb parameters as `NonArrayOrSqlJson<T>` (no raw arrays; `sql.json()` values) |
-| `ParamsArgs<DB, TM, Q>` | what a call site passes (`ArgsOf`, or `[params: {…}]` for `:name`) |
-| `NamesOf<DB, Q>` | `:name` parameters in order |
 | `Validate<DB, Q>` | `Q` when valid, else `SqlError<message, tokenIndex>` |
-| `Analyze<DB, Q>` | the full analysis result (`kind`, `cols`, `params`, `max`, `names`, `stmt`); never served from the type cache |
-| `Analysis<DB, Q>` | what `RowOf`, `ParamsOf` and `Validate` read: `Analyze` without `stmt`, from the [type cache](../guide/caching) when it has a usable entry |
 | `ApplyDdl<DB, Q>` | schema after a DDL statement or a `;`-separated script |
 | `SqlError<Message, At>` | compile-time error carrier; `At` is the index of the offending token |
-| `QueryCache`, `QueryCacheKeys`, `CacheSnapshots`, `DdlCache`, `DdlCacheKeys`, `CacheVersion`, … | what a [type cache](../guide/caching) file declares; generated, not written by hand |
+| `Migrations<DB>`, `SchemaOf<M>`, `MigrationClient` | a [migration list](./ddl), its schema, what `runMigrations` runs on |
+
+The engine's other types (the markers `sql.param()` and `sql.json()` return, the
+representative texts of `sql.join`, `sql.set` and `sql.values`, `Analyze`, the lexer, parser
+and type cache types, …) are exported from `@typesql/core/engine`, so that a declaration file
+or the [type cache](../guide/caching) can name them. They change with the engine and are not a
+stable API.
 
 ## Schema types
 
@@ -292,7 +286,7 @@ Schema qualification is ignored (`public.f(x)` is `f`). Any other name is an err
 `function f(int4) does not exist. Declare it in the schema's $functions or in FunctionCatalog`.
 A known name whose overloads do not fit the arguments is `unknown` (nullable); a cast fixes it.
 
-Declare app and extension functions on the schema (`FunctionRegistry` is the key's type):
+Declare app and extension functions on the schema:
 
 ```ts
 interface DB {
@@ -346,7 +340,7 @@ adapter pages.
 Option and override types: `KyselyOverrides`, `KyselyOptions` (`camelCase`),
 `FromDrizzleOptions` (`casing`, `timestamp`, `time`), `PrismaOverrides` (`$table`, `$schema`,
 per-field `{ column, type, nullable, default }`). The generator's pieces are exported from
-`@typesql/prisma/generator` (`generateSource`, `serveGenerator`).
+`@typesql/prisma/generator` (`generateSource(datamodel, options?)`).
 
 ## Introspection
 
@@ -364,9 +358,7 @@ typesql introspect [--url <url>] [--out <file>] [--schema <name>]… [--exclude 
 |---|---|
 | `introspect(client, { schemas?, exclude?, viewNotNull? })` | `Promise<IntrospectedDatabase>`: `{ version, schemas, relations, enums }` |
 | `generateSource(db, options?)` | the schema file's source; options `typeName`, `importFrom`, `imports`, `columnTypes` (map or function; json / jsonb columns become `Json<T>`), `column`, `comments` |
-| `main(argv)` | the CLI, returns the exit code |
 | `IntrospectConfig` | the default export of a `--config` module: `url`, `out` and every option above |
-| `ViewNullability`, `parseNodeTree` | the view column nullability analysis |
 
 
 - Statement size: up to 4096 tokens (the generated `Next` table; regenerate with

@@ -6,7 +6,8 @@ import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { Client } from "pg";
 import { acquireDatabase } from "../../../core/test/conformance/db.js";
-import { generateSource, introspect, main } from "../../src/introspect/index.js";
+import { generateSource, introspect } from "../../src/introspect/index.js";
+import { main } from "../../src/introspect/cli.js";
 import config from "./introspect.config.js";
 import { ddl } from "./fixture.js";
 

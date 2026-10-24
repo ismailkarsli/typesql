@@ -24,26 +24,29 @@ columns are checked against the target list), `OVERRIDING … VALUE`, and insert
 is an error. `DEFAULT` is only allowed as a whole `VALUES` item or `SET` value, and not for a
 `NOT NULL` column without a default (it would store `NULL`).
 
-## Optional values: `sql.valueOrDefault`
+## Optional values
 
-`sql.valueOrDefault(value)` is used like `sql.param(value)`, but an `undefined` value sends
-`DEFAULT` instead of a parameter. The column's default stays in the database, so you don't
-copy it into a `coalesce(…)`:
+A `sql.param(value)` whose value is `undefined` sends `DEFAULT` instead of a parameter. The
+column's default stays in the database, so you don't copy it into a `coalesce(…)`:
 
-<<< @/snippets/writing-data.ts#value-or-default
+<<< @/snippets/writing-data.ts#optional-values
 
-The value is checked like a parameter, without `undefined`. When it can be `undefined`, the
-statement is checked a second time with `DEFAULT` in its place, so using it outside a `VALUES`
-item or `SET` value, or for a `NOT NULL` column without a default, is an error:
+The value is checked like any parameter, without `undefined`. When it can be `undefined`, the
+statement is checked a second time with `DEFAULT` in its place, so such a value outside a
+`VALUES` item or `SET` value, or for a `NOT NULL` column without a default, is an error:
 
 ```ts
-sql(`INSERT INTO users (email) VALUES (${sql.valueOrDefault(maybeEmail)})`);
+sql(`INSERT INTO users (email) VALUES (${sql.param(maybeEmail)})`);
 // … SqlError<"null value in column \"email\" of relation \"users\" violates not-null constraint
-//            (sql.valueOrDefault() sends DEFAULT for undefined)", 4>
+//            (sql.param() sends DEFAULT for undefined)", 4>
+sql(`SELECT id FROM users WHERE email = ${sql.param(maybeEmail)}`);
+// … SqlError<"DEFAULT is not allowed in this context (sql.param() sends DEFAULT for undefined)", 7>
 ```
 
-The second check runs once per statement, however many `valueOrDefault` values it has. Inside
-`sql.fragment(…)` only the value type is checked.
+Narrow the value first, or pass `maybeEmail ?? null` to send `NULL`. The second check runs once
+per statement, however many such values it has. `sql.fragment(…)` refuses a value that can be
+`undefined`: the fragment is checked where it is spliced, with `$n` for its values, so a
+`DEFAULT` there could not be checked. `any` and `unknown` values are not checked.
 
 ## Partial updates: `sql.set`
 

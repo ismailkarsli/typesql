@@ -116,10 +116,9 @@ Postgres types (`@db.*` wins over the scalar default):
 Length, precision and scale arguments (`VarChar(200)`, `Decimal(10, 2)`) are dropped:
 TypeSQL types columns by type name only.
 
-The generator speaks Prisma's generator protocol itself (no `@prisma/generator-helper`). Its
-pieces are exported from `@typesql/prisma/generator`: `generateSource(datamodel, options)`
-turns a DMMF datamodel into the source text, and `serveGenerator(handler)` runs the protocol
-on stdin/stderr.
+The generator speaks Prisma's generator protocol itself (no `@prisma/generator-helper`).
+`@typesql/prisma/generator` exports `generateSource(datamodel, options)`, which turns a DMMF
+datamodel into the source text the generator writes.
 
 ## `FromPrisma`: converting the generated client's types
 

@@ -1,5 +1,6 @@
 import { expectTypeOf, test } from "vitest";
-import type { IdTok, Lex, NumTok, OpTok, ParamTok, SqlError, StrTok, WordTok } from "../../src/index.js";
+import type { SqlError } from "../../src/index.js";
+import type { IdTok, Lex, NumTok, OpTok, ParamTok, StrTok, WordTok } from "../../src/engine/index.js";
 import type { Row, V } from "./_schema.js";
 
 /** Token values only, for compact assertions. */

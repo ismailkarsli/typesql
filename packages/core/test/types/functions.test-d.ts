@@ -1,5 +1,6 @@
 import { expectTypeOf, test } from "vitest";
-import type { CacheAnalysis, SqlError } from "../../src/index.js";
+import type { SqlError } from "../../src/index.js";
+import type { CacheAnalysis } from "../../src/engine/index.js";
 import type { DB, Row, V, Interval } from "./_schema.js";
 
 // Return types verified against PostgreSQL 18 (`pg_proc` and `select pg_typeof(f(...))`).

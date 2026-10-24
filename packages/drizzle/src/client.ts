@@ -1,4 +1,5 @@
-import type { Executor, SqlDriver } from "@typesql/core";
+import type { Executor } from "@typesql/core";
+import type { SqlDriver } from "@typesql/core/adapter";
 
 /**
  * What the adapter uses from a Drizzle database (`drizzle(client)` from `drizzle-orm/node-postgres`,

@@ -68,9 +68,9 @@ checked against their context.
 - **Typed JSON**: `json_build_object`, `json_agg`, `to_json(t)` and `->` / `#>` give the JSON's
   structure, typed as Postgres serializes it.
 - **Postgres column naming** (`?column?`, `count`, `lower`) and Postgres-worded compile errors.
-- **Fragments**: `sql.fragment`, `sql.id`, `sql.join`, `sql.list` (runtime arrays of typed elements), `sql.raw`, spliced into inference with
-  `$n` renumbering.
-- **Write helpers**: `sql.valueOrDefault(x)` sends `DEFAULT` for `undefined`; `sql.set(table, partial)`
+- **Fragments**: `sql.fragment`, `sql.id`, `sql.join` (also over runtime arrays of typed
+  elements), `sql.raw`, spliced into inference with `$n` renumbering.
+- **Write helpers**: `sql.param(x)` sends `DEFAULT` for `undefined`; `sql.set(table, partial)`
   and `sql.values(table, rows)` build typed `SET` lists and `VALUES` rows from objects.
 - **DDL**: `ApplyDdl<DB, "ALTER TABLE …">` and the `migrations()` builder derive the schema from
   your migrations.

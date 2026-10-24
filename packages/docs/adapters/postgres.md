@@ -38,8 +38,8 @@ Verified against `postgres@3.4.9/src/types.js`. The default parsers are only:
 Everything else is the text Postgres sent, i.e. `string`: notably `int8`, `numeric`,
 `interval`, `point`, `circle`, `record`, `void`. With
 `postgres({ types: { bigint: postgres.BigInt } })` int8 (OID 20) is parsed to `bigint`;
-use `PostgresJsBigIntTypeMap` / `createBigIntSql` for those connections (`int8[]` becomes
-`bigint[]`).
+pass `{ bigint: true }` to `createSql` for those connections (`PostgresJsBigIntTypeMap`;
+`int8[]` becomes `bigint[]`).
 
 Arrays: postgres.js fetches `pg_type` on connect (`fetch_types: true`, the default) and
 registers an element-wise parser for every array type, so core's `T[]` mapping is exact.

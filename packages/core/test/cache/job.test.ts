@@ -77,7 +77,8 @@ export const sql = createSql<DB>();
 }, 120_000);
 
 test("calls through a TransactionalSql (an adapter's client and its tx) get entries", async () => {
-  const db = `import { createTransactionalSql, type Col, type DefaultTypeMap, type SqlDriver } from "@typesql/core";
+  const db = `import type { Col, DefaultTypeMap } from "@typesql/core";
+import { createTransactionalSql, type SqlDriver } from "@typesql/core/adapter";
 export interface DB { users: { id: Col<"int4">; email: Col<"text"> } }
 declare const driver: SqlDriver<object>;
 export const sql = createTransactionalSql<DB, DefaultTypeMap, object>({}, driver);
@@ -125,6 +126,27 @@ export type D = Row<"SELECT ${"(".repeat(100)}1${")".repeat(100)}">;
     expect(entries["SELECT title FROM posts"]!.a).toContain("title");
     expect(entries["SELECT nofunc(id) FROM users"]!.a).toBeUndefined();
     expect(entries["SELECT id FROM users"]!.a).toBeDefined();
+  } finally {
+    e.remove();
+  }
+}, 120_000);
+
+test("a dependency that cannot be written out is left out, not a failed pass", async () => {
+  // a catalog function whose type is a function over a project type: no snapshot can be written
+  const db = `${SCHEMA}import type { Sig } from "@typesql/core";
+export interface Raw { s: string }
+declare module "@typesql/core" {
+  interface FunctionCatalog { my_len: Sig<["text"], "int4"> & ((raw: Raw) => void) }
+}
+`;
+  const e = tempProject({ "tsconfig.json": tsconfig(), "src/db.ts": db, "src/q.ts": `import { sql } from "./db.js";\nexport const q = sql("SELECT my_len(email) AS n FROM users");\n`, "src/generated/queries.typesqlcache": "{}\n" });
+  try {
+    const r = await generate({ configFile: join(e.dir, "tsconfig.json"), cacheFile: join(e.dir, "src/generated/queries.typesqlcache"), engine: engineVersion(), isCorePath: (f) => f.startsWith(join(e.corePackage, "dist")) });
+    expect(r.statements).toBe(1);
+    expect(r.written).toBe(true);
+    // the entry would depend on my_len, which no snapshot can describe: it gets none
+    const file = parseCache(readFileSync(join(e.dir, "src/generated/queries.typesqlcache"), "utf8"))!;
+    expect(Object.values(file.groups).flatMap((g) => Object.keys(g.entries))).toEqual([]);
   } finally {
     e.remove();
   }

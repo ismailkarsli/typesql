@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { camelCase, createSql, mapRows, type Col, type Executor, type Generated, type Nullable } from "../../src/index.js";
+import { createSql, type Col, type Executor, type Generated, type Nullable } from "../../src/index.js";
+import { camelCase, mapRows } from "../../src/adapter.js";
 import { camelCases } from "./camel-cases.js";
 
 interface DB {

@@ -1,4 +1,5 @@
-import { runTransaction, type Executor, type SqlDriver } from "@typesql/core";
+import type { Executor } from "@typesql/core";
+import { runTransaction, type SqlDriver } from "@typesql/core/adapter";
 
 /** The subset of a `pg` query result the adapter relies on. */
 export interface PgResult {

@@ -7,20 +7,21 @@ interface DB {
 }
 const sql = createSql<DB>();
 
-describe("sql.valueOrDefault", () => {
+describe("sql.param with undefined", () => {
   it("sends a parameter, or DEFAULT for undefined without taking a number", () => {
     const score: number | undefined = undefined;
     const name: string | null | undefined = null;
-    const q = sql(`INSERT INTO users (email, score, display_name) VALUES (${sql.param("a")}, ${sql.valueOrDefault(score)}, ${sql.valueOrDefault(name)}) RETURNING id`);
+    const q = sql(`INSERT INTO users (email, score, display_name) VALUES (${sql.param("a")}, ${sql.param(score)}, ${sql.param(name)}) RETURNING id`);
     expect(q).toEqual({ text: "INSERT INTO users (email, score, display_name) VALUES ($1, DEFAULT, $2) RETURNING id", values: ["a", null] });
-    const q2 = sql(`UPDATE users SET score = ${sql.valueOrDefault(7 as number | undefined)} WHERE id = $1`, 3);
+    const q2 = sql(`UPDATE users SET score = ${sql.param(7 as number | undefined)} WHERE id = $1`, 3);
     expect(q2).toEqual({ text: "UPDATE users SET score = $2 WHERE id = $1", values: [3, 7] });
     expect(pendingParams()).toBe(0);
   });
   it("is resolved when a fragment is created, and fragments renumber after it", () => {
-    const f = sql.fragment(`${sql.valueOrDefault(undefined)}, ${sql.param(1)}`);
+    // @ts-expect-error a fragment refuses a value that can be undefined; at runtime it is still DEFAULT
+    const f = sql.fragment(`${sql.param(undefined)}, ${sql.param(1)}`);
     expect(f).toEqual({ text: "DEFAULT, $1", values: [1] });
-    const q = sql.as(`INSERT INTO users (email, score, id) VALUES (${sql.valueOrDefault(undefined as string | undefined)}, {f})`, { f });
+    const q = sql.as(`INSERT INTO users (email, score, id) VALUES (${sql.param(undefined as string | undefined)}, {f})`, { f });
     expect(q).toEqual({ text: "INSERT INTO users (email, score, id) VALUES (DEFAULT, DEFAULT, $1)", values: [1] });
   });
 });

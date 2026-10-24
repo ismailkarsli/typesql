@@ -1,5 +1,6 @@
 import { expectTypeOf, test } from "vitest";
-import type { Lex, ParseProgram, SqlError } from "../../src/index.js";
+import type { SqlError } from "../../src/index.js";
+import type { Lex, ParseProgram } from "../../src/engine/index.js";
 import type { Row, V } from "./_schema.js";
 
 // UNION / INTERSECT / EXCEPT, verified against PostgreSQL 18.

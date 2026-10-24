@@ -1,5 +1,6 @@
 import { expectTypeOf, test } from "vitest";
-import { createSql, type IsErr, type ParamsType, type RowType, type SqlError, type Validate } from "@typesql/core";
+import { createSql, type ParamsType, type RowType, type SqlError, type Validate } from "@typesql/core";
+import type { IsErr } from "@typesql/core/engine";
 import type { PgTypeMap } from "../../src/index.js";
 import type { HistoryItem, Settings } from "./json-types.js";
 import type { DB } from "./schema.generated.js";

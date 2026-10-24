@@ -1,6 +1,6 @@
 // A hand-written type cache (what the content mapper would serve) whose entries are deliberately
 // wrong, so the tests can tell a cached result from a computed one: `id` is cached as `bool`.
-import type * as T from "../../../src/index.js";
+import type * as T from "../../../src/engine/index.js";
 export {};
 
 type Users = { id: T.Generated<"int4">; email: T.Col<"text"> };
@@ -18,7 +18,7 @@ type D1 = Omit<D0, "v"> & { v: "an older engine" };
 type Col<N extends string, Ty extends string> = { readonly n: N; readonly t: { readonly type: Ty; readonly nullable: false } };
 type Select<C> = { readonly kind: "select"; readonly cols: C; readonly params: {}; readonly max: 0; readonly names: [] };
 
-declare module "../../../src/index.js" {
+declare module "../../../src/engine/index.js" {
   interface QueryCacheKeys {
     "SELECT id FROM users": true;
     "SELECT u.id FROM users u": true;

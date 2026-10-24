@@ -57,7 +57,7 @@ const SORT = {
   author: { asc: sql.fragment("p.author_id"), desc: sql.fragment("p.author_id DESC") },
 } as const;
 declare const sortBy: { field: keyof typeof SORT; dir: "asc" | "desc" }[]; // chosen by the user
-const order = sql.list([...sortBy.map(({ field, dir }) => SORT[field][dir]), sql.fragment("p.id")]);
+const order = sql.join([...sortBy.map(({ field, dir }) => SORT[field][dir]), sql.fragment("p.id")]);
 const sorted = sql("SELECT p.id, p.title FROM posts p ORDER BY {order}", { order });
 // Query<{ id: string; title: string }, []>: checked with each of the five elements once
 // #endregion list

@@ -29,13 +29,11 @@ await sql.transaction(async (tx) => {
 });
 ```
 
-With bigint parsing enabled on the connection, use `createBigIntSql`:
+With bigint parsing enabled on the connection, pass `{ bigint: true }`:
 
 ```ts
-import { createBigIntSql } from "@typesql/postgres";
-
 const dbBig = postgres(process.env.DATABASE_URL!, { types: { bigint: postgres.BigInt } });
-const big = createBigIntSql<DB>(dbBig); // PostgresJsBigIntTypeMap
+const big = createSql<DB>(dbBig, { bigint: true }); // PostgresJsBigIntTypeMap
 
 const counts = await big("SELECT author_id, count(*) AS n FROM posts GROUP BY author_id").execute();
 // { author_id: number; n: bigint }[]
@@ -45,15 +43,14 @@ const counts = await big("SELECT author_id, count(*) AS n FROM posts GROUP BY au
 
 | Export | |
 |---|---|
-| `createSql<DB>(db, options?)` | core's `createSql<DB, PostgresJsTypeMap>()` with the queries running on `db`; `{ rowKeys: "camelCase" }` camelCases the row keys |
-| `createBigIntSql<DB>(db, options?)` | the same with `PostgresJsBigIntTypeMap`, for `types: { bigint: postgres.BigInt }` |
+| `createSql<DB>(db, options?)` | core's `createSql<DB, PostgresJsTypeMap>()` with the queries running on `db`; `{ rowKeys: "camelCase" }` camelCases the row keys, `{ bigint: true }` uses `PostgresJsBigIntTypeMap`, for `types: { bigint: postgres.BigInt }` |
 | `q.execute()`, `q.executeTakeFirst()`, `q.executeTakeFirstOrThrow()`, `q.executeCount()` | `Promise<Row[]>` (a plain array, result metadata stripped), `Promise<Row \| undefined>`, `Promise<Row>` (`NoResultError` on 0 rows), `Promise<number>` (`.count`, 0 for DDL) |
 | `sql.transaction(fn)` | `db.begin(fn)` with `tx` bound to the transaction; `tx.transaction(fn)` is `savepoint(fn)` |
 | `executor(db)` | an `Executor` for `q.execute(executor)` and core's `createSql(executor)` (reports `.count`) |
 | `migrate(db, m)` | runs `m.statements` (e.g. from core's `migrations()`) in one transaction |
-| `PostgresJsSql<DB, Keys>`, `PostgresJsBigIntSql<DB, Keys>` | the types `createSql` and `createBigIntSql` return |
+| `PostgresJsSql<DB, Keys, TM>` | the type `createSql` returns (`TM` is `PostgresJsBigIntTypeMap` with `{ bigint: true }`) |
 | `PostgresJsTypeMap`, `PostgresJsBigIntTypeMap`, `PostgresJsParamTypeMap` | the type maps (rows), and what parameters also accept |
-| `NoResultError`, `PostgresJsQueryable`, `PostgresJsTransactable`, `PostgresJsRows`, `MigrationSource` | errors and parameter types |
+| `PostgresJsQueryable`, `PostgresJsTransactable`, `PostgresJsRows`, `MigrationSource` | parameter types |
 
 Queries run with `db.unsafe(text, values)`, so the text reaches the server unchanged and values
 are bind parameters. `db` is the `Sql` instance, a `TransactionSql` or a `ReservedSql`.

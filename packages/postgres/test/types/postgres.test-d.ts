@@ -1,10 +1,9 @@
 import { expectTypeOf, test } from "vitest";
 import postgres from "postgres";
-import type { Col, Generated, Nullable, ParamsType, RowType, SqlError, TsTypeOf } from "@typesql/core";
+import type { Col, Generated, Nullable, ParamsType, RowType, SqlError } from "@typesql/core";
+import type { TsTypeOf } from "@typesql/core/engine";
 import {
-  createBigIntSql,
   createSql,
-  type PostgresJsBigIntSql,
   type PostgresJsBigIntTypeMap,
   type PostgresJsQueryable,
   type PostgresJsSql,
@@ -36,7 +35,7 @@ interface DB {
 
 declare const db: ReturnType<typeof postgres>;
 const sql = createSql<DB>(db);
-const big = createBigIntSql<DB>(db);
+const big = createSql<DB>(db, { bigint: true });
 
 type Row = { id: number; email: string; display_name: string | null };
 const q = sql("SELECT id, email, display_name FROM users WHERE id = $1", 1);
@@ -93,7 +92,7 @@ test("postgres.js Sql, TransactionSql and ReservedSql satisfy the structural int
 
 test("createSql accepts a Sql, TransactionSql or ReservedSql", () => {
   expectTypeOf(sql).toEqualTypeOf<PostgresJsSql<DB>>();
-  expectTypeOf(big).toEqualTypeOf<PostgresJsBigIntSql<DB>>();
+  expectTypeOf(big).toEqualTypeOf<PostgresJsSql<DB, "preserve", PostgresJsBigIntTypeMap>>();
   createSql<DB>({} as postgres.TransactionSql);
   createSql<DB>({} as postgres.ReservedSql);
 });
@@ -129,7 +128,7 @@ test("sql.transaction passes a sql bound to the transaction and returns the call
   });
   expectTypeOf(result).toEqualTypeOf<Promise<Row>>();
   big.transaction(async (tx) => {
-    expectTypeOf(tx).toEqualTypeOf<PostgresJsBigIntSql<DB>>();
+    expectTypeOf(tx).toEqualTypeOf<PostgresJsSql<DB, "preserve", PostgresJsBigIntTypeMap>>();
   });
 });
 
@@ -157,8 +156,10 @@ test("rowKeys: camelCase renames the row keys", () => {
   expectTypeOf<RowType<typeof cq>>().toEqualTypeOf<CamelRow>();
   expectTypeOf(cq.execute()).toEqualTypeOf<Promise<CamelRow[]>>();
   expectTypeOf(cq.executeTakeFirstOrThrow()).toEqualTypeOf<Promise<CamelRow>>();
-  const bigCamel = createBigIntSql<DB>(db, { rowKeys: "camelCase" });
+  const bigCamel = createSql<DB>(db, { rowKeys: "camelCase", bigint: true });
   expectTypeOf<RowType<ReturnType<typeof bigCamel<"SELECT count(*) AS user_count FROM users">>>>().toEqualTypeOf<{ userCount: bigint }>();
-  expectTypeOf(createBigIntSql<DB>(undefined, {})).toEqualTypeOf(big);
+  expectTypeOf(createSql<DB>(undefined, { bigint: true })).toEqualTypeOf(big);
+  expectTypeOf(createSql<DB>(db, { bigint: false })).toEqualTypeOf(sql);
+  expectTypeOf(createSql<DB>(db, { rowKeys: "camelCase", bigint: false })).toEqualTypeOf(camel);
   expectTypeOf(createSql<DB>(db, { rowKeys: "preserve" })).toEqualTypeOf(sql);
 });

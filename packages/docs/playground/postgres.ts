@@ -1,7 +1,7 @@
 // TypeSQL with postgres.js (@typesql/postgres). Queries run with sql.unsafe(text, values), and rows
 // are typed by what postgres.js parses: int8 is a string, or a bigint with BigInt parsing on.
 import type { Sql } from "postgres";
-import { createBigIntSql, createSql } from "@typesql/postgres";
+import { createSql } from "@typesql/postgres";
 import type { Col, Generated, Nullable } from "@typesql/core";
 
 interface DB {
@@ -27,7 +27,7 @@ const posts = await sql(`SELECT id, title, tags FROM posts WHERE $1 = ANY (tags)
 
 // On a connection with `types: { bigint: postgres.BigInt }`, int8 and count(*) come back as bigint.
 declare const dbBig: Sql<{ bigint: bigint }>;
-const big = createBigIntSql<DB>(dbBig);
+const big = createSql<DB>(dbBig, { bigint: true });
 const counts = await big(`SELECT author_id, count(*) AS n FROM posts GROUP BY author_id`).execute();
 //    ^?
 

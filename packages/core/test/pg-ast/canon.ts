@@ -2,7 +2,8 @@
  * Must print exactly what pg-canon.ts prints from PostgreSQL's parse tree of the same statement:
  * change both together.
  */
-import type { Lex, ParseProgram, SqlError } from "../../src/index.js";
+import type { SqlError } from "../../src/index.js";
+import type { Lex, ParseProgram } from "../../src/engine/index.js";
 import type { Toks } from "../../src/engine/lexer/tokens.js";
 
 export type Out = "…";

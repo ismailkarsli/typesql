@@ -43,7 +43,7 @@ const id = await sql.transaction(async (tx) => {
 | `migrate(pool, m)` | runs `m.statements` (e.g. from core's `migrations()`) in one transaction |
 | `PgSql<DB, Keys>` | the type `createSql` returns |
 | `PgTypeMap`, `PgParamTypeMap`, `PgInterval` | the type map (rows), what parameters also accept, and the `postgres-interval` object type |
-| `NoResultError`, `PgQueryable`, `PgPoolLike`, `PgTransactionClient`, `PgResult`, `MigrationSource` | errors and parameter types |
+| `PgQueryable`, `PgPoolLike`, `PgTransactionClient`, `PgResult`, `MigrationSource` | parameter types |
 
 `client` is anything with `query(text, values)`. The parameters are structural, so fakes work
 in tests. If the `ROLLBACK` of a pool transaction fails, the client is released with the error

@@ -1,5 +1,7 @@
 import { describe, expect, test } from "vitest";
-import { generateSource, main, parseNodeTree, type IntrospectedColumn, type IntrospectedDatabase } from "../../src/introspect/index.js";
+import { generateSource, type IntrospectedColumn, type IntrospectedDatabase } from "../../src/introspect/index.js";
+import { main } from "../../src/introspect/cli.js";
+import { parseNodeTree } from "../../src/introspect/nullability.js";
 
 const col = (name: string, type: string, extra: Partial<IntrospectedColumn> = {}): IntrospectedColumn => ({
   name, type, declaredType: type, domain: null, nullable: false, hasDefault: false,

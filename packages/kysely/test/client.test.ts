@@ -10,7 +10,7 @@ import {
   type Driver,
   type QueryResult,
 } from "kysely";
-import { camelCase } from "@typesql/core";
+import { camelCase } from "@typesql/core/adapter";
 import { createSql, executor } from "../src/index.js";
 import type { DB } from "./fixtures/kysely-codegen.js";
 import { camelCases } from "../../core/test/runtime/camel-cases.js";

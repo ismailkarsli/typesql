@@ -1,8 +1,6 @@
 import { expectTypeOf, test } from "vitest";
-import {
-  createSql, migrations, Migrations, type Col, type Generated, type Nullable, type NullableGenerated, type RowType,
-  type SchemaOf, type SqlError, type ValidateDdl, type View,
-} from "../../src/index.js";
+import { createSql, migrations, type Migrations, type Col, type Generated, type Nullable, type NullableGenerated, type RowType, type SchemaOf, type SqlError, type View } from "../../src/index.js";
+import type { ValidateDdl } from "../../src/engine/index.js";
 
 const m = migrations()
   .add("CREATE TYPE mood AS ENUM ('happy', 'sad')")
